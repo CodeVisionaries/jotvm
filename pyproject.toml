@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+authors = [
+  {name = "Georg Schnabel", email = "g.schnabel@iaea.org"}
+]
+name = "jotvm"
+description = "Package for extended JSON Patch support"
+readme = "README.md"
+version = "0.0.1"
+license = "MIT"
+dependencies = ["pytest"]
+requires-python = ">= 3.8"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
