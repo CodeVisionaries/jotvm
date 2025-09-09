@@ -10,8 +10,70 @@ debug_printer.enable()
 
 
 json_doc = {
-    # Merges two sorted arrays at /inp/arr1
-    # and /inp/arr2 into one sorted list
+    # get-array-slice(arr, start-idx, stop-idx)
+    #   get a slice from /inp/start-idx
+    #   to (including) /inp/stop-idx of the
+    #   full array given at /inp/arr
+    "get-array-slice": [
+        # Create an empty array at /out that will
+        # hold the slice eventually
+        {
+            "op": "add",
+            "path": "/out",
+            "value": [],
+        },
+        # Prepare array representation of JSON pointer
+        # referring to current array element.
+        # The last part "0" in the array will be updated
+        # dynamically in the loop.
+        {
+            "op": "add",
+            "path": "/arr-idx-ptr",
+            "value": ["inp", "arr", 0]
+        },
+        # Prepare copy operation to copy array element
+        # to the end of the array at /out. The "from" field
+        # will be updated dynamically.
+        {
+            "op": "add",
+            "path": "/copy-op",
+            "value": {
+                "op": "copy",
+                "from": "dummy",
+                "path": "/out/-",
+            },
+        },
+        # Use a loop to copy all elements of the specified slice
+        # to /out
+        {
+            "op": "ctrl/for-loop",
+            "path": "",
+            "start-value-path": "/inp/start-idx",
+            "stop-value-path": "/inp/stop-idx",
+            "counter-path": "/arr-idx-ptr/2",
+            "patch": [
+                # Upate the JSON pointer referencing
+                # current array element
+                {
+                    "op": "array/join-path",
+                    "path": "/copy-op/from",
+                    "value-path": "/arr-idx-ptr"
+                },
+                # Apply /copy-op operation to copy this element
+                # to the end of the /out array
+                {
+                    "op": "ctrl/apply-patch-op",
+                    "patch-op-path": "/copy-op",
+                    "path": "",
+                },
+            ],  # end of for-loop patch
+        },  # end of for-lop op
+        # Mission accomplished: The slice is now stored under /out
+    ],
+
+    # merge-sorted-arrays(arr1, arr2)
+    #   Merges two sorted arrays at /inp/arr1
+    #   and /inp/arr2 into one sorted list
     "merge-sorted-arrays": [
         # initialize an empty result array
         {
@@ -200,9 +262,126 @@ json_doc = {
     # Merge Sort algorithm
     # Expects input array at /inp/arr and sorts
     # it in ascending order. It makes use of the
-    # merge-sorted-arrays function defined above.
+    # get-array-slice and merge-sorted-arrays functions
+    # defined above as well as itself. Therefore it expects
+    # these functions to be available at:
+    # /req/merge-sorted-arrays
+    # /req/get-array-slice
+    # /req/merge-sort
+    # NOTE: This function expects arr to have at least two elements.
     "merge-sort": [
-        # TODO: Implement the algorithm
+        # Get the largest available index (array length - 1)
+        {
+            "op": "array/length",
+            "path": "/max-idx",
+            "value-path": "/inp/arr",
+        },
+        {
+            "op": "number/sub",
+            "path": "/max-idx",
+            "value": 1,
+        },
+        # Determine index that splits array in half
+        {
+            "op": "copy",
+            "from": "/max-idx",
+            "path": "/mid-idx",
+        },
+        {
+            "op": "number/div",
+            "path": "/mid-idx",
+            "value": 2,
+        },
+        {
+            "op": "number/trunc",
+            "path": "/mid-idx",
+        },
+        # Obtain the lower slice and the upper slice
+        {
+            "op": "ctrl/call-func",
+            "patch-path": "/req/get-array-slice",
+            "arr-path": "/inp/arr",
+            "start-idx": 0,
+            "stop-idx-path": "/mid-idx",
+            "out-path": "/left-slice",
+        },
+        {
+            "op": "number/add",
+            "path": "/mid-idx",
+            "value": 1,
+        },
+        {
+            "op": "ctrl/call-func",
+            "patch-path": "/req/get-array-slice",
+            "arr-path": "/inp/arr",
+            "start-idx-path": "/mid-idx",
+            "stop-idx-path": "/max-idx",
+            "out-path": "/right-slice",
+        },
+        # If the left slice has more than one element,
+        # apply merge-sort on it. If only one element,
+        # do nothing as it is already sorted.
+        {
+            "op": "array/length",
+            "path": "/left-slice-len",
+            "value-path": "/left-slice",
+        },
+        {
+            "op": "number/greater",
+            "path": "/left-slice-at-least-two",
+            "left-value-path": "/left-slice-len",
+            "right-value": 1
+        },
+        {
+            "op": "ctrl/cond-apply-patch-op",
+            "path": "",
+            "check-path": "/left-slice-at-least-two",
+            "true-patch-op": {
+                "op": "ctrl/call-func",
+                "patch-path": "/req/merge-sort",
+                "req-path": "/req",
+                "arr-path": "/left-slice",
+                "out-path": "/left-slice",
+            },
+        },
+        # If the right slice has more than one element,
+        # apply merge-sort on it. If only one element,
+        # do nothing as it is already sorted.
+        {
+            "op": "array/length",
+            "path": "/right-slice-len",
+            "value-path": "/right-slice",
+        },
+        {
+            "op": "number/greater",
+            "path": "/right-slice-at-least-two",
+            "left-value-path": "/right-slice-len",
+            "right-value": 1
+        },
+        {
+            "op": "ctrl/cond-apply-patch-op",
+            "path": "",
+            "check-path": "/right-slice-at-least-two",
+            "true-patch-op": {
+                "op": "ctrl/call-func",
+                "patch-path": "/req/merge-sort",
+                "req-path": "/req",
+                "arr-path": "/right-slice",
+                "out-path": "/right-slice",
+            },
+        },
+        # Now we know that the two arrays stored at
+        # /left-slice and /right-slice are sorted
+        # and we can call /req/merge-sorted-arrays
+        # to obtain one combined and sorted array.
+        {
+            "op": "ctrl/call-func",
+            "patch-path": "/req/merge-sorted-arrays",
+            "arr1-path": "/left-slice",
+            "arr2-path": "/right-slice",
+            "out-path": "/out",
+        },
+        # Mission accomplished, the sorted array is under /out
     ],
 
     # Some real data
@@ -235,7 +414,28 @@ patch_ops = [
         "arr1": [1, 5, 10],
         "arr2": [],
         "out-path": "/combined-array-sorted-2",
-    }
+    },
+    # Test getting a slice of an array
+    {
+        "op": "ctrl/call-func",
+        "patch-path": "/get-array-slice",
+        "arr": [1, 2, 5, 4, 3, 6, 7],
+        "start-idx": 2,
+        "stop-idx": 4,
+        "out-path": "/array-slice"
+    },
+    # Test the merge-sort algorithm to sort an array
+    {
+        "op": "ctrl/call-func",
+        "patch-path": "/merge-sort",
+        "req": {
+            "merge-sort-path": "/merge-sort",
+            "merge-sorted-arrays-path": "/merge-sorted-arrays",
+            "get-array-slice-path": "/get-array-slice",
+        },
+        "arr": [3, 2, 8, 1, 4, 7, 5, 9, 6],
+        "out-path": "/merge-sorted-array",
+    },
 ]
 
 
@@ -248,3 +448,5 @@ print("/orig-array-2:" + str(json_doc["orig-array-2"]))
 print("/combined-array-sorted: " + str(json_doc["combined-array-sorted"]))
 print("/combined-array-sorted-1: " + str(json_doc["combined-array-sorted-1"]))
 print("/combined-array-sorted-2: " + str(json_doc["combined-array-sorted-2"]))
+print("/array-slice: " + str(json_doc["array-slice"]))
+print("/merge-sorted-array: " + str(json_doc["merge-sorted-array"]))
