@@ -5,6 +5,7 @@ from .binary_ops import BINARY_OP_CLASSES
 from .relation_ops import RELATION_OP_CLASSES
 from .controls import CONTROL_OP_CLASSES
 from .trafo_unary_ops import TRAFO_UNARY_OP_CLASSES
+from .endo_unary_ops import ENDO_UNARY_OP_CLASSES
 from .type_aliases import JsonContainerType
 from .debug import SimpleDebugPrinter
 
@@ -75,5 +76,8 @@ class ExtJsonPatch(JsonPatch):
         })
         op_types.update({
             cl.get_op_name(): cl for cl in TRAFO_UNARY_OP_CLASSES
+        })
+        op_types.update({
+            cl.get_op_name(): cl for cl in ENDO_UNARY_OP_CLASSES
         })
         return op_types

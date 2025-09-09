@@ -26,7 +26,7 @@ def ensure_type(x, type_):
 
 
 def ensure_number(x):
-    return enforce_type(x, (int, float))
+    return ensure_type(x, (int, float))
 
 
 def ensure_array(x):

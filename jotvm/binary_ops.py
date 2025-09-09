@@ -38,7 +38,9 @@ def make_binary_op_class(class_name: str, op_name: str, op_func: callable):
 binary_op_class_defs = [
     # binary math operators
     ('NumberAdd', 'number/add', operator.add),
+    ('NumberSub', 'number/sub', operator.sub),
     ('NumberMul', 'number/mul', operator.mul),
+    ('NumberDiv', 'number/div', operator.truediv),
     # binary logic operators
     ('BoolOr', 'bool/or', operator.or_),
     ('BoolAnd', 'bool/and', operator.and_),

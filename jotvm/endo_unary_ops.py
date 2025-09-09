@@ -4,14 +4,10 @@ from .json_pointer import JsonPointer
 from .utils import (
     obtain_value,
     MissingValue,
-    check_array_deco,
-    check_string_deco,
-)
-from .type_aliases import JsonContainerType
-from .utils import (
     ensure_bool,
     ensure_number,
 )
+from .type_aliases import JsonContainerType
 
 
 __all__ = ['ENDO_UNARY_OP_CLASSES']
@@ -41,13 +37,14 @@ class EndoUnaryOpBase(JsonPatchOpBase):
 
 
 def make_endo_unary_op_class(class_name: str, op_name: str, op_func: callable):
-    return type(class_name, (TrafoUnaryOpBase,), {
+    return type(class_name, (EndoUnaryOpBase,), {
         'get_op_name': classmethod(lambda cls: op_name),
         'basic_op': classmethod(lambda cls, v: op_func(v)),
     })
 
 
 endo_unary_op_class_defs = [
+    ('NumberTrunc', 'number/trunc', lambda v: int(ensure_number(v))),
     ('NumberSqrt', 'number/sqrt', lambda v: math.sqrt(ensure_number(v))),
     ('NumberCos', 'number/cos', lambda v: math.cos(ensure_number(v))),
     ('NumberSin', 'number/sin', lambda v: math.sin(ensure_number(v))),
