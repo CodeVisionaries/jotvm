@@ -5,7 +5,7 @@ from .utils import (
     obtain_value,
     MissingValue,
 )
-from .type_aliases import JsonContainerType
+from .json_types import JsonContainerType
 
 
 __all__ = ['RELATION_OP_CLASSES']

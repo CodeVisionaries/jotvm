@@ -6,7 +6,7 @@ from .utils import (
     ensure_array,
     ensure_string,
 )
-from .type_aliases import JsonContainerType
+from .json_types import JsonContainerType
 
 
 __all__ = ['TRAFO_UNARY_OP_CLASSES']

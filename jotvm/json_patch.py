@@ -6,7 +6,7 @@ from .relation_ops import RELATION_OP_CLASSES
 from .controls import CONTROL_OP_CLASSES
 from .trafo_unary_ops import TRAFO_UNARY_OP_CLASSES
 from .endo_unary_ops import ENDO_UNARY_OP_CLASSES
-from .type_aliases import JsonContainerType
+from .json_types import JsonContainerType
 from .debug import SimpleDebugPrinter
 
 
