@@ -1,6 +1,6 @@
 from .json_pointer import JsonPointer
 from copy import deepcopy
-from .json_types import JsonContainerType
+from .json.types import JsonContainerType
 
 
 class JsonPatchOpBase:

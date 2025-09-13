@@ -5,7 +5,7 @@ from .utils import (
     MissingValue,
 )
 import operator
-from .json_types import JsonContainerType
+from .json.types import JsonContainerType
 
 
 __all__ = ['BINARY_OP_CLASSES']

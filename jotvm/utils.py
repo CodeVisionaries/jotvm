@@ -1,6 +1,6 @@
 from copy import deepcopy
 from .json_pointer import JsonPointer
-from .json_types import JsonContainerType
+from .json.types import JsonContainerType
 
 
 def int_to_str(x):

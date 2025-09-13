@@ -7,7 +7,7 @@ from .utils import (
     ensure_bool,
     ensure_number,
 )
-from .json_types import JsonContainerType
+from .json.types import JsonContainerType
 
 
 __all__ = ['ENDO_UNARY_OP_CLASSES']
