@@ -1,6 +1,10 @@
 import pytest
 from jotvm.json_patch import ExtJsonPatch
 from copy import deepcopy
+from jotvm.json.types import (
+    JsonFactory,
+    JsonObject,
+)
 
 
 @pytest.fixture(scope="function")
@@ -118,20 +122,23 @@ def example_json_patch():
 
 
 def test_ext_patch_ops(example_json_patch):
-    patch = ExtJsonPatch.from_list(example_json_patch)
-    d = {}
+    patch = ExtJsonPatch.from_python(example_json_patch, require_decimal=False)
+    d = JsonObject({})
     patch(d)
 
 
 def test_relation_ops():
-    json_doc = {'a': 10, 'b': 10, 'c': 30}
+    json_doc = JsonFactory.from_python(
+        {'a': 10, 'b': 10, 'c': 30},
+        require_decimal=False
+    )
     patch_ops = [
             {'op': 'number/equal', 'path': '/x', 'left-value-path': '/a', 'right-value-path': '/b'},
             {'op': 'number/greater-equal', 'path': '/x1', 'left-value-path': '/a', 'right-value-path': '/b'},
             {'op': 'number/equal', 'path': '/y', 'left-value-path': '/a', 'right-value-path': '/c'},
             {'op': 'number/equal', 'path': '/z', 'left-value-path': '/a', 'right-value-path': '/c'},
     ]
-    ext_patch = ExtJsonPatch.from_list(patch_ops)
+    ext_patch = ExtJsonPatch.from_python(patch_ops)
     ext_patch(json_doc)
     assert json_doc['x'] is True
     assert json_doc['x1'] is True
@@ -140,14 +147,19 @@ def test_relation_ops():
 
 
 def test_apply_patch(example_json_patch):
-    d1 = {'patch': example_json_patch, 'xyz': {}}
+    d1 = JsonFactory.from_python(
+        {'patch': example_json_patch, 'xyz': {}},
+        require_decimal=False,
+    )
     apply_op = {
         "op": "ctrl/apply-patch",
         "path": "/xyz",
         "patch-path": "/patch" ,
     }
     ext_patch_list = example_json_patch + [apply_op]
-    ext_patch = ExtJsonPatch.from_list(ext_patch_list)
+    ext_patch = ExtJsonPatch.from_python(
+        ext_patch_list, require_decimal=False
+    )
     ext_patch(d1)
     d1.pop('patch')
     d2 = d1.pop('xyz')
@@ -155,13 +167,16 @@ def test_apply_patch(example_json_patch):
 
 
 def test_call_patch_args_values():
-    json_doc = {
-        'func': [
-            {'op': 'add', 'path': '/result', 'value': 0},
-            {'op': 'number/add', 'path': '/result', 'value-path': '/x'},
-            {'op': 'number/add', 'path': '/result', 'value-path': '/y'},
-        ]
-    }
+    json_doc = JsonFactory.from_python(
+        {
+            'func': [
+                {'op': 'add', 'path': '/result', 'value': 0},
+                {'op': 'number/add', 'path': '/result', 'value-path': '/x'},
+                {'op': 'number/add', 'path': '/result', 'value-path': '/y'},
+            ]
+        },
+        require_decimal=False
+    )
     patch_ops = [
         {
             'op': 'ctrl/call-patch',
@@ -170,7 +185,9 @@ def test_call_patch_args_values():
             'result-paths': {'/result': '/arith-result'}
         },
     ]
-    ext_patch = ExtJsonPatch.from_list(patch_ops)
+    ext_patch = ExtJsonPatch.from_python(
+        patch_ops, require_decimal=False
+    )
     ext_patch(json_doc)
     assert json_doc['arith-result'] == 30
 
@@ -194,7 +211,8 @@ def test_call_patch_with_args_paths():
             'out-path': '/arith-result',
         }
     ]
-    ext_patch = ExtJsonPatch.from_list(patch_ops)
+    ext_patch = ExtJsonPatch.from_python(patch_ops, require_decimal=False)
+    json_doc = JsonFactory.from_python(json_doc, require_decimal=False)
     ext_patch(json_doc)
     assert json_doc['arith-result'] == 46
 
@@ -235,7 +253,8 @@ def test_while():
             'patch-path': '/func'
         },
     ]
-    ext_patch = ExtJsonPatch.from_list(patch_ops)
+    ext_patch = ExtJsonPatch.from_python(patch_ops, require_decimal=False)
+    json_doc = JsonFactory.from_python(json_doc, require_decimal=False)
     ext_patch.apply(json_doc)
     assert json_doc['block-scope']['counter'] == 0
     assert json_doc['block-scope']['check'] is False
@@ -264,7 +283,8 @@ def test_for_loop():
             ]
         },
     ]
-    ext_patch = ExtJsonPatch.from_list(patch_ops)
+    ext_patch = ExtJsonPatch.from_python(patch_ops, require_decimal=False)
+    json_doc = JsonFactory.from_python(json_doc, require_decimal=False)
     ext_patch.apply(json_doc)
     assert json_doc['val'] == 55
 
@@ -322,12 +342,15 @@ def test_path_ops():
             ]
         },
     ]
-    ext_patch = ExtJsonPatch.from_list(json_patch)
+    ext_patch = ExtJsonPatch.from_python(json_patch, require_decimal=False)
+    json_doc = JsonFactory.from_python(json_doc, require_decimal=False)
     ext_patch(json_doc)
     assert json_doc['arr'] == [3, 6, 9]
 
 
 def test_patch_to_dict_translation(example_json_patch):
-    json_patch = ExtJsonPatch.from_list(example_json_patch)
-    new_json_patch = json_patch.to_list()
+    json_patch = ExtJsonPatch.from_python(
+        example_json_patch, require_decimal=False
+    )
+    new_json_patch = json_patch.to_python()
     assert example_json_patch == new_json_patch

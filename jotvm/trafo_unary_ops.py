@@ -1,3 +1,4 @@
+from typing import Union
 from .json_patch_op_base import JsonPatchOpBase
 from .json_pointer import JsonPointer
 from .utils import (
@@ -6,7 +7,7 @@ from .utils import (
     ensure_array,
     ensure_string,
 )
-from .json.types import JsonContainerType
+from .json.types import JsonContainerTypeHint
 
 
 __all__ = ['TRAFO_UNARY_OP_CLASSES']
@@ -25,7 +26,7 @@ class TrafoUnaryOpBase(JsonPatchOpBase):
         """Basic binary operation to be applied."""
         raise NotImplementedError('implement `basic_op` method')
 
-    def apply(self, json_doc: JsonContainerType):
+    def apply(self, json_doc: JsonContainerTypeHint):
         arg_value = obtain_value('value', self._fields, json_doc)
         result = self.basic_op(arg_value)
         path = JsonPointer(self._fields['path'])

@@ -1,15 +1,19 @@
 import pytest
 from jotvm.json_pointer import JsonPointer
+from jotvm.json.types import (
+    JsonFactory,
+    JsonNumber,
+)
 
 
 @pytest.fixture(scope="function")
 def json_doc():
-    return {
+    return JsonFactory.from_python({
         "a": 5,
         "b": [1, 2, 3],
         "c": {"u": "cu", "v": [6, {"x": 8}]},
         "d": [1.3, [11, {"y": 19}, 8], 9],
-    }
+    }, require_decimal=False)
 
 
 def test_get(json_doc):
@@ -57,7 +61,7 @@ def test_add_to_array(json_doc):
     orig_len = len(jp0.get(json_doc))
     jp1 = JsonPointer("/b/1")
     assert jp1.get(json_doc) == 2
-    jp1.add(json_doc, 10)
+    jp1.add(json_doc, JsonNumber('10'))
     assert jp1.get(json_doc) == 10
     jp2 = JsonPointer("/b/2")
     assert jp2.get(json_doc) == 2
@@ -65,7 +69,9 @@ def test_add_to_array(json_doc):
     assert orig_len + 1 == new_len
     jp3 = JsonPointer("/d/1/0")
     assert jp3.get(json_doc) == 11
-    jp3.add(json_doc, [101, "a"])
+    jp3.add(
+        json_doc, JsonFactory.from_python([101, "a"], require_decimal=False)
+    )
     assert jp3.get(json_doc) == [101, "a"]
     jp4 = JsonPointer("/d/1")
     assert jp4.get(json_doc)[1] == 11

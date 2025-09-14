@@ -1,19 +1,23 @@
+from __future__ import annotations
 from typing import Union
-from copy import deepcopy
 from .json_patch_ops import PATCH_OP_CLASSES
 from .binary_ops import BINARY_OP_CLASSES
 from .relation_ops import RELATION_OP_CLASSES
 from .controls import CONTROL_OP_CLASSES
 from .trafo_unary_ops import TRAFO_UNARY_OP_CLASSES
 from .endo_unary_ops import ENDO_UNARY_OP_CLASSES
-from .json.types import JsonContainerType
+from .json.types import (
+    JsonContainerTypeHint,
+    JsonContainerTypes,
+    JsonArray,
+)
 from .debug import SimpleDebugPrinter
 
 
 class JsonPatchBase:
 
-    def __init__(self, patch_ops, debug=True):
-        self._patch_ops = deepcopy(patch_ops)
+    def __init__(self, patch_ops: list['JsonPatchOpBase']):
+        self._patch_ops = patch_ops.copy()
         self._debugger = SimpleDebugPrinter()
 
     @classmethod
@@ -21,19 +25,35 @@ class JsonPatchBase:
         raise NotImplementedError('Implement in child class')
 
     @classmethod
-    def from_list(cls, patch_ops, debug=True):
+    def from_json_array(cls, patch_ops: JsonArray[JsonObject]) -> 'JsonPatchBase':
+        if not isinstance(patch_ops, JsonArray):
+            raise TypeError('`patch_ops` must be type `JsonArray`')
+
         op_types = cls._get_op_types()
         op_list = []
         for op_dict in patch_ops:
-            op_class = op_types[op_dict['op']]
-            op = op_class.from_dict(op_dict)
+            op_class = op_types[op_dict['op'].to_python()]
+            op = op_class(op_dict)
             op_list.append(op)
-        return cls(op_list, debug=debug)
 
-    def to_list(self):
-        return [op.to_dict() for op in self._patch_ops]
+        return cls(op_list)
 
-    def __call__(self, json_doc: JsonContainerType):
+    def to_json_array(self) -> list:
+        return JsonArray([op.to_json_object() for op in self._patch_ops])
+
+    @classmethod
+    def from_python(cls, patch_ops: list[dict], require_decimal=True):
+        json_patch_ops = JsonArray.from_python(patch_ops, require_decimal)
+        return cls.from_json_array(json_patch_ops)
+
+    def to_python(self):
+        json_arr = self.to_json_array()
+        return json_arr.to_python()
+
+    def __call__(self, json_doc: JsonContainerTypeHint):
+        if not isinstance(json_doc, JsonContainerTypes):
+            raise TypeError('json_doc must be either JsonObject or JsonArray')
+
         debug_msg = self._debugger.debug
         debug_msg('\n=== Initial State of JSON Document ===\n')
         debug_msg(json_doc)
@@ -47,7 +67,7 @@ class JsonPatchBase:
 
         debug_msg('=== End of Patch Application ===\n')
 
-    def apply(self, json_doc: JsonContainerType):
+    def apply(self, json_doc: JsonContainerTypeHint):
         self(json_doc)
 
 

@@ -1,5 +1,9 @@
 import pytest
 from jotvm.json_patch import JsonPatch
+from jotvm.json.types import (
+    JsonFactory,
+    JsonObject,
+)
 
 
 @pytest.fixture(scope="function")
@@ -39,14 +43,18 @@ def example_json_patch():
 
 
 def test_apply_patch(example_json_patch):
-    json_patch = JsonPatch.from_list(example_json_patch)
-    json_doc = {}
+    json_patch = JsonPatch.from_python(
+        example_json_patch, require_decimal=False
+    )
+    json_doc = JsonObject() 
     json_patch(json_doc)
 
 
 def test_patch_to_dict_translation(example_json_patch):
-    json_patch = JsonPatch.from_list(example_json_patch)
-    new_json_patch = json_patch.to_list()
+    json_patch = JsonPatch.from_python(
+        example_json_patch, require_decimal=False
+    )
+    new_json_patch = json_patch.to_python()
     assert example_json_patch == new_json_patch
 
 
@@ -64,7 +72,12 @@ def test_patch_applied_to_array():
             'value': 30,
         },
     ]
-    json_patch = JsonPatch.from_list(patch_ops)
+    json_doc = JsonFactory.from_python(
+        json_doc, require_decimal=False
+    )
+    json_patch = JsonPatch.from_python(
+        patch_ops, require_decimal=False
+    )
     json_patch(json_doc)
     assert json_doc[1]['a'] == 10
     assert json_doc[3] == 30

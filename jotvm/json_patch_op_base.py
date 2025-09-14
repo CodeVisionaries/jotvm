@@ -1,6 +1,11 @@
+from typing import Union
 from .json_pointer import JsonPointer
 from copy import deepcopy
-from .json.types import JsonContainerType
+from .json.types import (
+    JsonString,
+    JsonObject,
+    JsonContainerTypeHint,
+)
 
 
 class JsonPatchOpBase:
@@ -12,13 +17,16 @@ class JsonPatchOpBase:
         """Get operation name."""
         raise NotImplementedError('implement `get_op_name` method')
 
-    def apply(self, json_doc: JsonContainerType):
+    def apply(self, json_doc: JsonContainerTypeHint):
         """Apply JSON patch operation on JSON document."""
         raise NotImplementedError('implement `apply` method')
 
     # Generic functions for all derived classes
-    def __init__(self, json_doc: JsonContainerType):
+    def __init__(self, json_doc: JsonObject):
         """Initialize JSON patch operation class."""
+        if not isinstance(json_doc, JsonObject):
+            raise TypeError('`json_doc` must be of type `JsonObject`')
+
         self._verify(json_doc)
         fields = deepcopy(json_doc)
         for key in fields:
@@ -27,25 +35,35 @@ class JsonPatchOpBase:
         self._fields = fields
 
     @classmethod
-    def _verify(cls, json_doc: JsonContainerType):
+    def _verify(cls, json_doc: JsonContainerTypeHint):
         """Internal method to verify dict representation of op."""
         expect_op = cls.get_op_name()
         current_op = json_doc['op']
-        if expect_op != current_op:
+        if expect_op != current_op.to_python():
             raise ValueError(
                 f'Expected operation `{expect_op}` but encountered `{current_op}`.'
             )
 
-    def __call__(self, json_doc: JsonContainerType):
+    def __call__(self, json_doc: JsonContainerTypeHint) -> None:
         self.apply(json_doc)
 
-    def to_dict(self):
-        """Export operation class instance to dict."""
+    @classmethod
+    def from_json_object(cls, json_doc: JsonObject) -> 'JsonPatchOpBase':
+        return cls(json_doc)
+
+    def to_json_object(self) -> JsonObject:
         return deepcopy(self._fields)
 
+    def to_python(self) -> dict:
+        """Export operation class instance to dict."""
+        return self._fields.to_python()
+
     @classmethod
-    def from_dict(cls, json_doc: JsonContainerType):
+    def from_python(cls, json_doc: dict, require_decimal=True) -> 'JsonPatchOpBase':
         """Create operation class from dict."""
+        if not isinstance(json_doc, dict):
+            raise TypeError('`json_doc` must be of type `dict`')
+        json_doc = JsonObject.from_python(json_doc, require_decimal)
         return cls(json_doc)
 
     def __repr__(self):

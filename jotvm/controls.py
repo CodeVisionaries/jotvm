@@ -1,4 +1,6 @@
+from typing import Union
 from copy import deepcopy
+from decimal import Decimal
 from .json_patch_op_base import (
     JsonPatchOpBase,
     make_patch_op_class,
@@ -8,7 +10,13 @@ from .utils import (
     obtain_value,
     MissingValue,
 )
-from .json.types import JsonContainerType
+from .json.types import (
+    JsonContainerTypes,
+    JsonContainerTypeHint,
+    JsonNumber,
+    JsonArray,
+    JsonObject,
+)
 
 
 __all__ = ['CONTROL_OP_CLASSES']
@@ -25,10 +33,10 @@ class ControlOpBase(JsonPatchOpBase):
 # conditional assigment, loops, function calls
 
 
-def cond_apply_patch_op_apply(self, json_doc: JsonContainerType):
+def cond_apply_patch_op_apply(self, json_doc: JsonContainerTypeHint):
     """Select and apply patch based on logical condition."""
     path = JsonPointer(self._fields['path'])
-    bool_value = obtain_value("check", self._fields, json_doc)
+    bool_value = bool(obtain_value("check", self._fields, json_doc))
     if bool_value is True:
         patch_ops = obtain_value(
             'true-patch', self._fields, json_doc, missing_ok=True
@@ -47,14 +55,14 @@ def cond_apply_patch_op_apply(self, json_doc: JsonContainerType):
 
     target_dict = path.get(json_doc)
     from .json_patch import ExtJsonPatch
-    patch = ExtJsonPatch.from_list(patch_ops)
+    patch = ExtJsonPatch.from_json_array(patch_ops)
     patch.apply(target_dict)
 
 
-def cond_apply_patch_op_op_apply(self, json_doc: JsonContainerType):
+def cond_apply_patch_op_op_apply(self, json_doc: JsonContainerTypeHint):
     """Select and apply a patch operation based on logical condition."""
     path = JsonPointer(self._fields['path'])
-    bool_value = obtain_value("check", self._fields, json_doc)
+    bool_value = bool(obtain_value("check", self._fields, json_doc))
     if bool_value is True:
         patch_op = obtain_value(
             'true-patch-op', self._fields, json_doc, missing_ok=True
@@ -73,11 +81,12 @@ def cond_apply_patch_op_op_apply(self, json_doc: JsonContainerType):
 
     target_dict = path.get(json_doc)
     from .json_patch import ExtJsonPatch
-    patch = ExtJsonPatch.from_list([patch_op])
+    # TODO: Get rid of this inefficient conversion
+    patch = ExtJsonPatch.from_json_array(JsonArray([patch_op]))
     patch.apply(target_dict)
 
 
-def while_op_apply(self, json_doc: JsonContainerType):
+def while_op_apply(self, json_doc: JsonContainerTypeHint):
     check_path = JsonPointer(self._fields['check-path'])
     path = JsonPointer(self._fields['path'])
     if check_path[:len(path)] != path:
@@ -88,15 +97,16 @@ def while_op_apply(self, json_doc: JsonContainerType):
 
     patch_ops = obtain_value('patch', self._fields, json_doc)
     from .json_patch import ExtJsonPatch
-    ext_patch = ExtJsonPatch.from_list(patch_ops)
+    ext_patch = ExtJsonPatch.from_json_array(patch_ops)
     work_dict = path.get(json_doc)
     check_value = local_check_path.get(work_dict)
-    while check_value is True:
+    ext_patch.apply(work_dict)
+    while check_value:
         ext_patch.apply(work_dict)
         check_value = local_check_path.get(work_dict)
 
 
-def for_op_apply(self, json_doc: JsonContainerType):
+def for_op_apply(self, json_doc: JsonContainerTypeHint):
     path = JsonPointer(self._fields['path'])
     local_counter_path = None
     if 'counter-path' in self._fields:
@@ -115,7 +125,7 @@ def for_op_apply(self, json_doc: JsonContainerType):
 
     patch_ops = obtain_value('patch', self._fields, json_doc)
     from .json_patch import ExtJsonPatch
-    ext_patch = ExtJsonPatch.from_list(patch_ops)
+    ext_patch = ExtJsonPatch.from_json_array(patch_ops)
 
     counter_backup = False
     orig_counter_value = None
@@ -133,7 +143,8 @@ def for_op_apply(self, json_doc: JsonContainerType):
                 # that the counter value is replacing a list
                 # element rather than inserting into a list.
                 local_counter_path.remove(work_dict)
-                local_counter_path.add(work_dict, counter)
+                json_counter = JsonNumber(Decimal(counter))
+                local_counter_path.add(work_dict, json_counter)
         ext_patch.apply(work_dict)
 
     if counter_backup:
@@ -145,29 +156,29 @@ def for_op_apply(self, json_doc: JsonContainerType):
         local_counter_path.remove(json_doc)
 
 
-def apply_patch_op_apply(self, json_doc: JsonContainerType):
+def apply_patch_op_apply(self, json_doc: JsonContainerTypeHint):
     # here to avoid circular import
     from .json_patch import ExtJsonPatch
     path = JsonPointer(self._fields['path'])
     target_dict = path.get(json_doc)
     patch_ops = obtain_value('patch', self._fields, json_doc)
-    patch = ExtJsonPatch.from_list(patch_ops)
+    patch = ExtJsonPatch.from_json_array(patch_ops)
     patch.apply(target_dict)
 
 
-def apply_patch_op_op_apply(self, json_doc: JsonContainerType):
+def apply_patch_op_op_apply(self, json_doc: JsonContainerTypeHint):
     # here to avoid circular import
     from .json_patch import ExtJsonPatch
     path = JsonPointer(self._fields['path'])
     target_dict = path.get(json_doc)
     patch_op = obtain_value('patch-op', self._fields, json_doc)
-    patch = ExtJsonPatch.from_list([patch_op])
+    patch = ExtJsonPatch.from_json_array(JsonArray([patch_op]))
     patch.apply(target_dict)
 
 
-def call_patch_op_apply(self, json_doc: JsonContainerType):
+def call_patch_op_apply(self, json_doc: JsonContainerTypeHint):
     # prepare work dict by copying request fields into it
-    work_dict = {}
+    work_dict = JsonObject()
     if 'args' in self._fields:
         for local_path, value in self._fields['args'].items():
             value = deepcopy(value)
@@ -180,7 +191,7 @@ def call_patch_op_apply(self, json_doc: JsonContainerType):
     # obtain json patch and apply it to work dict
     from .json_patch import ExtJsonPatch
     patch_ops = obtain_value('patch', self._fields, json_doc)
-    patch = ExtJsonPatch.from_list(patch_ops)
+    patch = ExtJsonPatch.from_json_array(patch_ops)
     patch.apply(work_dict)
 
     # copy the requested fields from work dict back into the json dict
@@ -191,7 +202,7 @@ def call_patch_op_apply(self, json_doc: JsonContainerType):
 
 
 def _prepare_func_input(
-    inp_dict: dict, inp_args: dict, json_doc: JsonContainerType
+    inp_dict: dict, inp_args: dict, json_doc: JsonContainerTypeHint
 ):
     for inp_arg, value in inp_args.items():
         mod_inp_arg = inp_arg
@@ -209,28 +220,28 @@ def _prepare_func_input(
         inp_dict[mod_inp_arg] = value
 
 
-def call_func_op_apply(self, json_doc: JsonContainerType):
+def call_func_op_apply(self, json_doc: JsonContainerTypeHint):
     # Prepare work dict by copying request fields into it.
     # Assume standard convention everything except
     # "op", "patch", "patch-path", "out" field gets mapped
     # to a field in "/inp" in the work dict. If the name
     # ends with "-path", the value is interpreted as JSON Pointer
     # and the value at the corresponding address copied.
-    work_dict = {}
+    work_dict = JsonObject()
     inp_args = deepcopy(self._fields)
     inp_args.pop('op', None)
     inp_args.pop('patch', None)
     inp_args.pop('patch-path', None)
     inp_args.pop('out-path', None)
-    inp_dict = work_dict.setdefault('inp', {})
+    inp_dict = work_dict.setdefault('inp', JsonObject())
     _prepare_func_input(inp_dict, inp_args, json_doc)
     # move injected dependencies under /inp/req to /req
-    work_dict['req'] = work_dict['inp'].pop('req', {})
+    work_dict['req'] = work_dict['inp'].pop('req', JsonObject())
 
     # obtain json patch and apply it to work dict
     from .json_patch import ExtJsonPatch
     patch_ops = obtain_value('patch', self._fields, json_doc)
-    patch = ExtJsonPatch.from_list(patch_ops)
+    patch = ExtJsonPatch.from_json_array(patch_ops)
     patch.apply(work_dict)
 
     # copy the requested fields from work dict back into the json dict

@@ -1,3 +1,4 @@
+from typing import Union
 from .json_patch_op_base import JsonPatchOpBase
 from .json_pointer import JsonPointer
 from .utils import (
@@ -5,7 +6,10 @@ from .utils import (
     MissingValue,
 )
 import operator
-from .json.types import JsonContainerType
+from .json.types import (
+    JsonContainerTypes,
+    JsonContainerTypeHint,
+)
 
 
 __all__ = ['BINARY_OP_CLASSES']
@@ -19,7 +23,7 @@ class BinaryOpBase(JsonPatchOpBase):
         """Basic binary operation to be applied."""
         raise NotImplementedError('implement `basic_op` method')
 
-    def apply(self, json_doc: JsonContainerType):
+    def apply(self, json_doc: JsonContainerTypeHint):
         path = JsonPointer(self._fields['path'])
         old_value = path.get(json_doc)
         add_value = obtain_value('value', self._fields, json_doc)

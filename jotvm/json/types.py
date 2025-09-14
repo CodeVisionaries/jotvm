@@ -6,7 +6,13 @@ from collections.abc import (
     MutableMapping,
     MutableSequence,
 )
-from typing import Union, List
+from typing import (
+    Optional,
+    Union,
+    List,
+    TypeVar,
+    Generic,
+)
 from decimal import (
     Decimal,
     Context,
@@ -18,6 +24,9 @@ from .tokens import (
     tokenize,
     TokenStream,
 )
+
+
+JsonValueType = TypeVar('JsonValueType', bound='JsonValue')
 
 
 class JsonFactory:
@@ -127,13 +136,18 @@ class JsonValue(ABC):
         return unary_op
 
     @staticmethod
-    def _create_binary_op(operator, wrap=True):
+    def _create_binary_op(operator, wrap=True, strict_type=True):
         """Create unary op method. Assumes presence of self.value."""
         def binary_op(self, other):
-            if not isinstance(other, type(self)):
+            if isinstance(other, type(self)):
+                other_value = other.value
+            elif not strict_type:
+                other_value = other
+            else:
                 return NotImplemented
+
             with localcontext(self.CONTEXT) as ctx:
-                pure_value = getattr(self.value, operator)(other.value)
+                pure_value = getattr(self.value, operator)(other_value)
                 if not wrap:
                     return pure_value
                 return JsonFactory.from_python(pure_value)
@@ -143,8 +157,11 @@ class JsonValue(ABC):
 @JsonFactory.register_python_types_deco(
     py_types=(dict,), start_toks=('LBRACE',), require_decimal=True
 )
-class JsonObject(JsonValue, MutableMapping['JsonString', 'JsonValue']):
-    def __init__(self, items: dict[JsonString, JsonValue], require_decimal=True):
+class JsonObject(
+    JsonValue, MutableMapping['JsonString', JsonValueType], Generic[JsonValueType]
+):
+    def __init__(self, items: Optional[dict[JsonString, JsonValue]]=None, require_decimal=True):
+        items = items if items else {}
         if not all(isinstance(k, JsonString) for k in items.keys()):
             raise TypeError('keys must be JsonString')
         if not all(isinstance(v, JsonValue) for v in items.values()):
@@ -199,25 +216,26 @@ class JsonObject(JsonValue, MutableMapping['JsonString', 'JsonValue']):
     def __repr__(self):
         return f'JsonObject({self.value!r})'
 
-    __eq__ = JsonValue._create_binary_op('__eq__', False)
+    __eq__ = JsonValue._create_binary_op('__eq__', False, False)
 
-    def __getitem__(self, key: Union[JsonString, str]) -> JsonValue:
+    @staticmethod
+    def _normalize_key(key: Union[str, JsonString]) -> JsonString:
         if isinstance(key, str):
             key = JsonString(key)
         elif not isinstance(key, JsonString):
             raise TypeError('Key must be a JsonString')
-        return self.value[JsonString]
+        return key
+
+    def __getitem__(self, key: Union[JsonString, str]) -> JsonValue:
+        key = self._normalize_key(key)
+        return self.value[key]
 
     def __setitem__(self, key: JsonString, value: JsonValue) -> None:
-        if not isinstance(key, JsonString):
-            raise TypeError('Key must be a JsonString')
-        if not isinstance(value, JsonString):
-            raise TypeError('Value must be a JsonString')
-        self.value[key] == value
+        key = self._normalize_key(key)
+        self.value[key] = value
 
     def __delitem__(self, key: JsonString) -> None:
-        if not isinstance(key, JsonString):
-            raise TypeError('Key must be a JsonString')
+        key = self._normalize_key(key)
         del self.value[key]
 
     def __iter__(self):
@@ -230,8 +248,9 @@ class JsonObject(JsonValue, MutableMapping['JsonString', 'JsonValue']):
 @JsonFactory.register_python_types_deco(
     py_types=(list,), start_toks=('LBRACKET',), require_decimal=True
 )
-class JsonArray(JsonValue, MutableSequence['JsonString', 'JsonValue']):
-    def __init__(self, values: list[JsonValue]):
+class JsonArray(JsonValue, MutableSequence[JsonValueType], Generic[JsonValueType]):
+    def __init__(self, values: Optional[list[JsonValue]]=None):
+        values = values if values else []
         if not all (isinstance(v, JsonValue) for v in values):
             raise TypeError('All array elements must be of type `JsonValue`')
         self.value = values.copy()
@@ -241,7 +260,9 @@ class JsonArray(JsonValue, MutableSequence['JsonString', 'JsonValue']):
 
     @classmethod
     def from_python(self, py_list: list, require_decimal=True) -> JsonArray:
-        return JsonArray([JsonFactory.from_python(v) for v in py_list])
+        return JsonArray(
+            [JsonFactory.from_python(v, require_decimal) for v in py_list]
+        )
 
     def to_json(self, conv_args=None) -> str:
         return '[' + ','.join(v.to_json() for v in self.value) + ']'
@@ -267,7 +288,7 @@ class JsonArray(JsonValue, MutableSequence['JsonString', 'JsonValue']):
     def __repr__(self):
         return f'JsonArray({self.value!r})'
 
-    __eq__ = JsonValue._create_binary_op('__eq__', False)
+    __eq__ = JsonValue._create_binary_op('__eq__', False, False)
 
     def __getitem__(self, index: int) -> JsonValue:
         return self.value[index]
@@ -286,7 +307,7 @@ class JsonArray(JsonValue, MutableSequence['JsonString', 'JsonValue']):
     def insert(self, index: int, value: JsonValue) -> None:
         if not isinstance(value, JsonValue):
             raise TypeError('Value must be a JsonValue')
-        self.value.insert(value)
+        self.value.insert(index, value)
 
 
 @JsonFactory.register_python_types_deco(
@@ -329,7 +350,23 @@ class JsonString(JsonValue):
     def __hash__(self):
         return hash(self.value)
 
-    __eq__ = JsonValue._create_binary_op('__eq__', False)
+    __eq__ = JsonValue._create_binary_op('__eq__', False, False)
+
+    def __getitem__(self, key):
+        return JsonString(self.value[key])
+
+    def endswith(self, suffix):
+        if isinstance(suffix, JsonString):
+            suffix = suffix.value
+        elif isinstance(suffix, tuple):
+            suffix = tuple(
+                s.value if isinstance(s, JsonString) else s for s in suffix
+            )
+        elif not isinstance(suffix, str):
+            raise TypeError(
+                '`suffix` must be of type `str`, `JsonString`, or tuple thereof'
+            )
+        return self.value.endswith(suffix)
 
 
 @JsonFactory.register_python_types_deco(
@@ -347,7 +384,7 @@ class JsonNumber(JsonValue):
 
     @classmethod
     def from_python(cls, value, require_decimal=True) -> JsonNumber:
-        return cls(value)
+        return cls(value, require_decimal)
 
     def to_json(self) -> str:
         return str(self.value)
@@ -364,23 +401,29 @@ class JsonNumber(JsonValue):
     def __hash__(self):
         return hash(self.value)
 
-    __float__ = JsonValue._create_binary_op('__float__', False)
-    __int__ = JsonValue._create_binary_op('__int__', False)
+    def __index__(self):
+        if self.value != self.value.to_integral_value():
+            raise TypeError('JsonNumber value is not an integer')
+        return int(self.value)
 
-    __eq__ = JsonValue._create_binary_op('__eq__', False)
-    __ne__ = JsonValue._create_binary_op('__ne__', False)
+    __float__ = JsonValue._create_unary_op('__float__', False)
+    __int__ = JsonValue._create_unary_op('__int__', False)
+
+    __eq__ = JsonValue._create_binary_op('__eq__', False, False)
+    __ne__ = JsonValue._create_binary_op('__ne__', False, False)
     __lt__ = JsonValue._create_binary_op('__lt__', False)
     __le__ = JsonValue._create_binary_op('__le__', False)
     __gt__ = JsonValue._create_binary_op('__gt__', False)
     __ge__ = JsonValue._create_binary_op('__ge__', False)
 
-    __add__      = JsonValue._create_binary_op('__add__')
-    __sub__      = JsonValue._create_binary_op('__sub__')
-    __mul__      = JsonValue._create_binary_op('__mul__')
-    __truediv__  = JsonValue._create_binary_op('__truediv__')
-    __floordiv__ = JsonValue._create_binary_op('__floordiv__')
-    __mod__      = JsonValue._create_binary_op('__mod__')
-    __pow__      = JsonValue._create_binary_op('__pow__')
+    __add__      = JsonValue._create_binary_op('__add__', True, False)
+    __radd__     = JsonValue._create_binary_op('__radd__', True, False)
+    __sub__      = JsonValue._create_binary_op('__sub__', True, False)
+    __mul__      = JsonValue._create_binary_op('__mul__', True, False)
+    __truediv__  = JsonValue._create_binary_op('__truediv__', True, False)
+    __floordiv__ = JsonValue._create_binary_op('__floordiv__', True, False)
+    __mod__      = JsonValue._create_binary_op('__mod__', True, False)
+    __pow__      = JsonValue._create_binary_op('__pow__', True, False)
 
 
 @JsonFactory.register_python_types_deco(py_types=(bool,), start_toks=('TRUE', 'FALSE'))
@@ -414,17 +457,14 @@ class JsonBool(JsonValue):
     def __repr__(self):
         return f'JsonBool({self.value!r})'
 
-    def __eq__(self, other):
-        if isinstance(other, JsonBool):
-            return self.value == other.value
-        return False
-
     __bool__ = JsonValue._create_unary_op('__bool__', False)
 
+    __eq__ =  JsonValue._create_binary_op('__eq__', False, False)
+
     __not__ = JsonValue._create_unary_op('__not__', False)
-    __and__ = JsonValue._create_binary_op('__and__', False)
-    __or__  = JsonValue._create_binary_op('__or__', False)
-    __xor__ = JsonValue._create_binary_op('__xor__', False)
+    __and__ = JsonValue._create_binary_op('__and__', False, False)
+    __or__  = JsonValue._create_binary_op('__or__', False, False)
+    __xor__ = JsonValue._create_binary_op('__xor__', False, False)
 
 
 @JsonFactory.register_python_types_deco(py_types=(type(None),), start_toks=('NULL',))
@@ -454,13 +494,13 @@ class JsonNull(JsonValue):
     def __repr__(self) -> str:
         return 'JsonNull()'
 
-    def __eq__(self, other):
-        return isinstance(other, JsonNull)
+    __eq__ =  JsonValue._create_binary_op('__eq__', False, False)
 
 
-JsonContainerType = Union[JsonObject, JsonArray]
+JsonContainerTypes = (JsonObject, JsonArray)
+JsonContainerTypeHint = Union[JsonContainerTypes]
 
 
-def check_container_type(json_doc):
-    if not isinstance(json_doc, (JsonObject, JsonArray)):
+def check_container_type(json_doc: JsonContainerTypeHint):
+    if not isinstance(json_doc, JsonContainerTypes):
         raise TypeError('json_doc must be either JsonObject or JsonArray')

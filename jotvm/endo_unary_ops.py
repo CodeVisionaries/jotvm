@@ -1,4 +1,5 @@
 import math
+from typing import Union
 from .json_patch_op_base import JsonPatchOpBase
 from .json_pointer import JsonPointer
 from .utils import (
@@ -7,7 +8,10 @@ from .utils import (
     ensure_bool,
     ensure_number,
 )
-from .json.types import JsonContainerType
+from .json.types import (
+    JsonContainerTypes,
+    JsonContainerTypeHint,
+)
 
 
 __all__ = ['ENDO_UNARY_OP_CLASSES']
@@ -25,7 +29,7 @@ class EndoUnaryOpBase(JsonPatchOpBase):
         """Basic binary operation to be applied."""
         raise NotImplementedError('implement `basic_op` method')
 
-    def apply(self, json_doc: JsonContainerType):
+    def apply(self, json_doc: JsonContainerTypeHint):
         path = JsonPointer(self._fields['path'])
         arg_value = obtain_value('value', self._fields, json_doc, missing_ok=True)
         if arg_value is MissingValue:

@@ -1,3 +1,4 @@
+from typing import Union
 import operator
 from .json_patch_op_base import JsonPatchOpBase
 from .json_pointer import JsonPointer
@@ -5,7 +6,7 @@ from .utils import (
     obtain_value,
     MissingValue,
 )
-from .json.types import JsonContainerType
+from .json.types import JsonContainerTypeHint
 
 
 __all__ = ['RELATION_OP_CLASSES']
@@ -19,7 +20,7 @@ class BinaryRelationOpBase(JsonPatchOpBase):
         """Basic relation operation to be applied."""
         raise NotImplementedError('implement `basic_op` method')
 
-    def apply(self, json_doc: JsonContainerType):
+    def apply(self, json_doc: JsonContainerTypeHint):
         path = JsonPointer(self._fields['path'])
         left_value = obtain_value('left-value', self._fields, json_doc) 
         right_value = obtain_value('right-value', self._fields, json_doc)

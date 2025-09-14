@@ -1,8 +1,12 @@
+from typing import Union
 from copy import deepcopy
 from .json_patch_op_base import make_patch_op_class
 from .json_pointer import JsonPointer
 from .utils import obtain_value
-from .json.types import JsonContainerType
+from .json.types import (
+    JsonContainerTypes,
+    JsonContainerTypeHint,
+)
 
 
 __all__ = ['PATCH_OP_CLASSES']
@@ -10,25 +14,25 @@ __all__ = ['PATCH_OP_CLASSES']
 
 # Define the apply method for each standard JSON patch operations
 
-def add_op_apply(self, json_doc: JsonContainerType):
+def add_op_apply(self, json_doc: JsonContainerTypeHint):
     path = JsonPointer(self._fields['path'])
     value = obtain_value('value', self._fields, json_doc)
     path.add(json_doc, value)
 
 
-def remove_op_apply(self, json_doc: JsonContainerType):
+def remove_op_apply(self, json_doc: JsonContainerTypeHint):
     path = JsonPointer(self._fields['path'])
     path.remove(json_doc)
 
 
-def replace_op_apply(self, json_doc: JsonContainerType):
+def replace_op_apply(self, json_doc: JsonContainerTypeHint):
     path = JsonPointer(self._fields['path'])
     value = obtain_value('value', self._fields, json_doc)
     path.remove(json_doc)
     path.add(json_doc, value)
 
 
-def move_op_apply(self, json_doc: JsonContainerType):
+def move_op_apply(self, json_doc: JsonContainerTypeHint):
     from_path = JsonPointer(self._fields['from'])
     to_path = JsonPointer(self._fields['path'])
     value = deepcopy(from_path.get(json_doc))
@@ -36,14 +40,14 @@ def move_op_apply(self, json_doc: JsonContainerType):
     to_path.add(json_doc, value)
 
 
-def copy_op_apply(self, json_doc: JsonContainerType):
+def copy_op_apply(self, json_doc: JsonContainerTypeHint):
     from_path = JsonPointer(self._fields['from'])
     to_path = JsonPointer(self._fields['path'])
     value = deepcopy(from_path.get(json_doc))
     to_path.add(json_doc, value)
 
 
-def test_op_apply(self, json_doc: JsonContainerType):
+def test_op_apply(self, json_doc: JsonContainerTypeHint):
     path = JsonPointer(self._fields['path'])
     value = path.get(json_doc)
     test_value = obtain_value('value', self._fields, json_doc)
