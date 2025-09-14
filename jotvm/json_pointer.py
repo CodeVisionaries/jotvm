@@ -1,7 +1,8 @@
 from typing import Union
+from collections.abc import Sequence
 
 
-class JsonPointer:
+class JsonPointer(Sequence):
 
     def __init__(self, json_pointer):
         if isinstance(json_pointer, JsonPointer):
