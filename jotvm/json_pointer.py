@@ -88,6 +88,9 @@ class JsonPointer(Sequence):
             return ''
         return '/' + '/'.join(self._encode_segment(s) for s in self._path)
 
+    def to_json_array(self):
+        return JsonArray([JsonString(s) for s in self._path])
+
     # ------------ Key Handling ------------------
 
     @staticmethod

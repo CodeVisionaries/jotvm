@@ -135,15 +135,15 @@ def for_op_apply(self, json_doc: JsonContainerTypeHint):
 
     work_dict = path.get(json_doc)
     for counter in range(start_value, stop_value+1, increment):
+        json_counter = JsonNumber(Decimal(counter))
         if local_counter_path is not None:
             if not counter_backup:
-                local_counter_path.add(work_dict, counter)
+                local_counter_path.add(work_dict, json_counter)
             else:
                 # This special case is introduced to ensure
                 # that the counter value is replacing a list
                 # element rather than inserting into a list.
                 local_counter_path.remove(work_dict)
-                json_counter = JsonNumber(Decimal(counter))
                 local_counter_path.add(work_dict, json_counter)
         ext_patch.apply(work_dict)
 
@@ -212,8 +212,8 @@ def _prepare_func_input(
             mod_inp_arg = inp_arg[:-len('-path')]
         # Recursively descend into dictionaries
         # and apply the same -path replace mechanism.
-        if isinstance(value, dict):
-            child_inp_dict = {}
+        if isinstance(value, JsonObject):
+            child_inp_dict = JsonObject()
             _prepare_func_input(child_inp_dict, value, json_doc)
             value = child_inp_dict
 

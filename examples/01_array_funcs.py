@@ -1,6 +1,6 @@
 from jotvm import ExtJsonPatch
 from jotvm.debug import SimpleDebugPrinter
-import json
+from jotvm.json.types import JsonFactory
 
 
 debug_printer = SimpleDebugPrinter()
@@ -105,18 +105,10 @@ patch_ops = [
 ]
 
 
-{
-    "op": "func/square-number",
-    "func-path": "/square-number",
-    "arr-path": "/orig-arr",
-    "fact": 5,
-    "result-path": "/squared-arr"
-}
-
-
-ext_patch = ExtJsonPatch.from_list(patch_ops, debug=True)
+json_doc = JsonFactory.from_python(json_doc, require_decimal=False)
+ext_patch = ExtJsonPatch.from_python(patch_ops, require_decimal=False)
 ext_patch.apply(json_doc)
 
-print(f"Original array: {json_doc['orig-arr']}")
-print(f"Scaled array: {json_doc['scaled-arr']}")
-print(f"Squared array: {json_doc['squared-arr']}")
+print(f"Original array: {json_doc['orig-arr'].to_python()}")
+print(f"Scaled array: {json_doc['scaled-arr'].to_python()}")
+print(f"Squared array: {json_doc['squared-arr'].to_python()}")

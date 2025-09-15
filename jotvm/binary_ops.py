@@ -9,6 +9,7 @@ import operator
 from .json.types import (
     JsonContainerTypes,
     JsonContainerTypeHint,
+    JsonBool,
 )
 
 
@@ -46,8 +47,8 @@ binary_op_class_defs = [
     ('NumberMul', 'number/mul', operator.mul),
     ('NumberDiv', 'number/div', operator.truediv),
     # binary logic operators
-    ('BoolOr', 'bool/or', operator.or_),
-    ('BoolAnd', 'bool/and', operator.and_),
+    ('BoolOr', 'bool/or', lambda x, y: JsonBool(x or y)),
+    ('BoolAnd', 'bool/and', lambda x, y: JsonBool(x and y)),
 ]
 
 

@@ -11,6 +11,7 @@ from .utils import (
 from .json.types import (
     JsonContainerTypes,
     JsonContainerTypeHint,
+    JsonNumber,
 )
 
 
@@ -48,10 +49,7 @@ def make_endo_unary_op_class(class_name: str, op_name: str, op_func: callable):
 
 
 endo_unary_op_class_defs = [
-    ('NumberTrunc', 'number/trunc', lambda v: int(ensure_number(v))),
-    ('NumberSqrt', 'number/sqrt', lambda v: math.sqrt(ensure_number(v))),
-    ('NumberCos', 'number/cos', lambda v: math.cos(ensure_number(v))),
-    ('NumberSin', 'number/sin', lambda v: math.sin(ensure_number(v))),
+    ('NumberTrunc', 'number/trunc', lambda v: JsonNumber(int(ensure_number(v)))),
     ('BoolNot', 'bool/not', lambda v: not ensure_bool(v)),
 ]
 

@@ -1,10 +1,10 @@
 from jotvm import ExtJsonPatch
 from jotvm.debug import SimpleDebugPrinter
-import json
+from jotvm.json.types import JsonFactory
 
 
 debug_printer = SimpleDebugPrinter()
-debug_printer.enable()
+debug_printer.disable()
 # Or: debug_printer.enable() for tracing the
 # computations on standard output
 
@@ -439,8 +439,11 @@ patch_ops = [
 ]
 
 
-ext_patch = ExtJsonPatch.from_list(patch_ops, debug=True)
+json_doc = JsonFactory.from_python(json_doc, require_decimal=False)
+ext_patch = ExtJsonPatch.from_python(patch_ops, require_decimal=False)
 ext_patch.apply(json_doc)
+
+json_doc = json_doc.to_python()
 
 print("/orig-array-1:" + str(json_doc["orig-array-1"]))
 print("/orig-array-2:" + str(json_doc["orig-array-2"]))

@@ -7,7 +7,12 @@ from .utils import (
     ensure_array,
     ensure_string,
 )
-from .json.types import JsonContainerTypeHint
+from .json.types import (
+    JsonContainerTypeHint,
+    JsonNumber,
+    JsonArray,
+    JsonString,
+)
 
 
 __all__ = ['TRAFO_UNARY_OP_CLASSES']
@@ -43,9 +48,9 @@ def make_trafo_unary_op_class(class_name: str, op_name: str, op_func: callable):
 
 
 trafo_unary_op_class_defs = [
-    ('StringSplitPath', 'string/split-path', lambda v: list(JsonPointer(ensure_string(v)))),
-    ('ArrayJoinPath', 'array/join-path', lambda v: str(JsonPointer(ensure_array(v)))) ,
-    ('ArrayLength', 'array/length', lambda v: len(ensure_array(v))),
+    ('StringSplitPath', 'string/split-path', lambda v: JsonPointer(ensure_string(v)).to_json_array()),
+    ('ArrayJoinPath', 'array/join-path', lambda v: JsonString((str(JsonPointer(ensure_array(v)))))),
+    ('ArrayLength', 'array/length', lambda v: JsonNumber(len(ensure_array(v)))),
 ]
 
 

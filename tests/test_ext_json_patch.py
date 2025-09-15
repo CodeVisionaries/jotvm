@@ -4,6 +4,7 @@ from copy import deepcopy
 from jotvm.json.types import (
     JsonFactory,
     JsonObject,
+    JsonBool,
 )
 
 
@@ -140,10 +141,14 @@ def test_relation_ops():
     ]
     ext_patch = ExtJsonPatch.from_python(patch_ops)
     ext_patch(json_doc)
-    assert json_doc['x'] is True
-    assert json_doc['x1'] is True
-    assert json_doc['y'] is False
-    assert json_doc['z'] is False
+    assert type(json_doc['x']) is JsonBool
+    assert json_doc['x'] == True
+    assert type(json_doc['x1']) is JsonBool
+    assert json_doc['x1'] == True
+    assert type(json_doc['y']) is JsonBool
+    assert json_doc['y'] == False
+    assert type(json_doc['z']) is JsonBool
+    assert json_doc['z'] == False
 
 
 def test_apply_patch(example_json_patch):
@@ -257,7 +262,8 @@ def test_while():
     json_doc = JsonFactory.from_python(json_doc, require_decimal=False)
     ext_patch.apply(json_doc)
     assert json_doc['block-scope']['counter'] == 0
-    assert json_doc['block-scope']['check'] is False
+    assert type(json_doc['block-scope']['check']) is JsonBool
+    assert not json_doc['block-scope']['check']
 
 
 def test_for_loop():

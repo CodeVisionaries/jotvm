@@ -166,7 +166,7 @@ class JsonObject(
             raise TypeError('keys must be JsonString')
         if not all(isinstance(v, JsonValue) for v in items.values()):
             raise TypeError('All values must be instances of JsonValue')
-        self.value = items.copy()
+        self.value = dict(items)
 
     def to_python(self) -> dict:
         return {k.to_python(): v.to_python() for k, v in self.value.items()}
@@ -228,6 +228,7 @@ class JsonObject(
 
     def __getitem__(self, key: Union[JsonString, str]) -> JsonValue:
         key = self._normalize_key(key)
+        self.value[key]
         return self.value[key]
 
     def __setitem__(self, key: JsonString, value: JsonValue) -> None:
@@ -253,7 +254,7 @@ class JsonArray(JsonValue, MutableSequence[JsonValueType], Generic[JsonValueType
         values = values if values else []
         if not all (isinstance(v, JsonValue) for v in values):
             raise TypeError('All array elements must be of type `JsonValue`')
-        self.value = values.copy()
+        self.value = list(values)
 
     def to_python(self) -> list:
         return [v.to_python() for v in self.value]
@@ -375,7 +376,7 @@ class JsonString(JsonValue):
 class JsonNumber(JsonValue):
 
     def __init__(self, value, require_decimal=True):
-        if not isinstance(value, (str, Decimal)) and require_decimal:
+        if not isinstance(value, (int, str, Decimal)) and require_decimal:
             raise ValueError('Expected value to be `Decimal` when require_decimal=True')
         self.value = Decimal(value)
 
@@ -411,10 +412,10 @@ class JsonNumber(JsonValue):
 
     __eq__ = JsonValue._create_binary_op('__eq__', False, False)
     __ne__ = JsonValue._create_binary_op('__ne__', False, False)
-    __lt__ = JsonValue._create_binary_op('__lt__', False)
-    __le__ = JsonValue._create_binary_op('__le__', False)
-    __gt__ = JsonValue._create_binary_op('__gt__', False)
-    __ge__ = JsonValue._create_binary_op('__ge__', False)
+    __lt__ = JsonValue._create_binary_op('__lt__', False, False)
+    __le__ = JsonValue._create_binary_op('__le__', False, False)
+    __gt__ = JsonValue._create_binary_op('__gt__', False, False)
+    __ge__ = JsonValue._create_binary_op('__ge__', False, False)
 
     __add__      = JsonValue._create_binary_op('__add__', True, False)
     __radd__     = JsonValue._create_binary_op('__radd__', True, False)
@@ -428,10 +429,10 @@ class JsonNumber(JsonValue):
 
 @JsonFactory.register_python_types_deco(py_types=(bool,), start_toks=('TRUE', 'FALSE'))
 class JsonBool(JsonValue):
-    def __init__(self, value: bool) -> None:
-        if not isinstance(value, bool):
-            raise TypeError('Expected value of type `bool`')
-        self.value = value
+    def __init__(self, value: Union[bool, JsonBool]) -> None:
+        if not isinstance(value, (JsonBool, bool)):
+            raise TypeError('Expected value of type `bool` or `JsonBool`')
+        self.value = bool(value)
 
     def to_python(self) -> bool:
         return self.value

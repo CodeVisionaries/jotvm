@@ -6,7 +6,10 @@ from .utils import (
     obtain_value,
     MissingValue,
 )
-from .json.types import JsonContainerTypeHint
+from .json.types import (
+    JsonContainerTypeHint,
+    JsonBool,
+)
 
 
 __all__ = ['RELATION_OP_CLASSES']
@@ -24,7 +27,7 @@ class BinaryRelationOpBase(JsonPatchOpBase):
         path = JsonPointer(self._fields['path'])
         left_value = obtain_value('left-value', self._fields, json_doc) 
         right_value = obtain_value('right-value', self._fields, json_doc)
-        relation_value = self.basic_op(left_value, right_value)
+        relation_value = JsonBool(self.basic_op(left_value, right_value))
         path.add(json_doc, relation_value)
 
 

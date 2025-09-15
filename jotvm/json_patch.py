@@ -56,14 +56,14 @@ class JsonPatchBase:
 
         debug_msg = self._debugger.debug
         debug_msg('\n=== Initial State of JSON Document ===\n')
-        debug_msg(json_doc)
+        debug_msg(json_doc.to_python())
         debug_msg('\n=== Start of patch application ===\n')
 
         for op in self._patch_ops:
             debug_msg(f'Applying {op!r}')
             op(json_doc)
             debug_msg('\n---> New State of JSON Document:\n')
-            debug_msg(str(json_doc) + '\n')
+            debug_msg(str(json_doc.to_python()) + '\n')
 
         debug_msg('=== End of Patch Application ===\n')
 
