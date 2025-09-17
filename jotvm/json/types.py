@@ -482,7 +482,7 @@ class JsonNull(JsonValue):
 
     @classmethod
     def from_python(cls, value):
-        cls(value)
+        return cls()
 
     def to_json(self) -> str:
         return "null"
