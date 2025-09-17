@@ -378,7 +378,10 @@ class JsonNumber(JsonValue):
     def __init__(self, value, require_decimal=True):
         if not isinstance(value, (int, str, Decimal)) and require_decimal:
             raise ValueError('Expected value to be `Decimal` when require_decimal=True')
-        self.value = Decimal(value)
+        decimal_value = Decimal(value)
+        if not decimal_value.is_finite():
+            raise ValueError('JSON does not support Infinity or NaN')
+        self.value = decimal_value
 
     def to_python(self) -> Decimal:
         return self.value
