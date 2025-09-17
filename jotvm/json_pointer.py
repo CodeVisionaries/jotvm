@@ -148,6 +148,8 @@ class JsonPointer(Sequence):
         if isinstance(obj, JsonObject):
             obj[p] = value
         elif isinstance(obj, JsonArray):
+            if not (0 <= p <= len(obj):
+                    raise IndexError(f'Index {p} out of bounds for JSON array')
             obj.insert(p, value)
 
     def remove(self, obj: JsonContainerTypeHint) -> None:
