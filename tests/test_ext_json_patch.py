@@ -1,8 +1,8 @@
 import pytest
 from jotvm.json_patch import ExtJsonPatch
 from copy import deepcopy
-from jotvm.json.types import (
-    JsonFactory,
+from jotvm.json.json_factory import JsonFactory
+from jotvm.json.json_types import (
     JsonObject,
     JsonBool,
 )

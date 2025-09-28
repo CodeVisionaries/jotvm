@@ -6,7 +6,7 @@ from .utils import (
     obtain_value,
     MissingValue,
 )
-from .json.types import (
+from .json.json_types import (
     JsonContainerTypeHint,
     JsonBool,
 )

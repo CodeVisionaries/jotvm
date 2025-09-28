@@ -3,7 +3,7 @@ from copy import deepcopy
 from .json_patch_op_base import make_patch_op_class
 from .json_pointer import JsonPointer
 from .utils import obtain_value
-from .json.types import (
+from .json.json_types import (
     JsonContainerTypes,
     JsonContainerTypeHint,
 )

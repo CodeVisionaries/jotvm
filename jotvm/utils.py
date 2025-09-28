@@ -1,7 +1,7 @@
 from typing import Union
 from copy import deepcopy
 from .json_pointer import JsonPointer
-from .json.types import (
+from .json.json_types import (
     JsonString,
     JsonNumber,
     JsonBool,

@@ -1,7 +1,7 @@
 from typing import Union
 from collections.abc import Sequence
 from decimal import Decimal
-from .json.types import (
+from .json.json_types import (
     JsonContainerTypes,
     JsonContainerTypeHint,
     check_container_type,

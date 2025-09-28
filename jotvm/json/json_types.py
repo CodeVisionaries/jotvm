@@ -1,5 +1,4 @@
 from __future__ import annotations
-import inspect
 import json
 from abc import ABC, abstractmethod
 from collections.abc import (
@@ -9,149 +8,16 @@ from collections.abc import (
 from typing import (
     Optional,
     Union,
-    List,
     TypeVar,
     Generic,
 )
-from decimal import (
-    Decimal,
-    Context,
-    localcontext,
-    ROUND_HALF_EVEN,
-)
-from .tokens import (
-    TOK_REGEX,
-    tokenize,
-    TokenStream,
-)
+from decimal import Decimal
+from .tokens import TokenStream
+from .json_value import JsonValue
+from .json_factory import JsonFactory
 
 
 JsonValueType = TypeVar('JsonValueType', bound='JsonValue')
-
-
-class JsonFactory:
-
-    PYTHON_JSON_MAP = {}
-    REQUIRE_DECIMAL = {}
-    START_TOK = {}
-
-    @classmethod
-    def register_python_types(
-        cls, json_class, py_types, start_toks, require_decimal=False
-    ):
-        """Register Python types with a Json class."""
-        if not issubclass(json_class, JsonValue):
-            raise TypeError('json_class must be a subclass of JsonValue')
-
-        for t in py_types:
-            cls.PYTHON_JSON_MAP[t] = json_class
-        cls.REQUIRE_DECIMAL[json_class] = require_decimal
-        for s in start_toks:
-            cls.START_TOK[s] = json_class
-        return json_class
-
-    @classmethod
-    def register_python_types_deco(
-        cls, py_types, start_toks, require_decimal=False
-    ):
-        def decorator(json_class):
-            cls.register_python_types(
-                json_class, py_types, start_toks, require_decimal
-            )
-            return json_class
-
-        return decorator
-
-    @classmethod
-    def from_python(cls, obj, require_decimal=True):
-        json_type = cls.PYTHON_JSON_MAP.get(type(obj))
-        if json_type is None:
-            raise TypeError(f'No known mapping from {type(obj)} to JSON class')
-
-        extra_args = {}
-        if cls.REQUIRE_DECIMAL.get(json_type, False):
-            extra_args['require_decimal'] = require_decimal
-
-        return json_type.from_python(obj, **extra_args)
-
-    @classmethod
-    def parse(cls, tokens: TokenStream):
-        next_tok = tokens.peek()
-        json_type = cls.START_TOK.get(next_tok[0])
-        if json_type is None:
-            raise SyntaxError(f'Unexpected token {next_tok[0]}')
-        return json_type.parse(tokens)
-
-    @classmethod
-    def _token_stream(cls, json_string: str):
-        return TokenStream(list(tokenize(json_string, TOK_REGEX)))
-
-
-    @classmethod
-    def from_json(cls, json_string: str):
-        return cls.parse(cls._token_stream(json_string))
-
-
-class JsonValue(ABC):
-    """Abstract base class for all JSON types."""
-
-    @abstractmethod
-    def to_json(self, conv_args=None) -> str:
-        """Convert object to JSON format."""
-        pass
-
-    @abstractmethod
-    def to_python(self) -> object:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def from_python(cls, **extra_args) -> JsonValue:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def parse(cls, tokens: TokenStream) -> JsonValue:
-        pass
-
-    @abstractmethod
-    def __eq__(self, other):
-        pass
-
-    CONTEXT = Context(
-        prec=28, rounding=ROUND_HALF_EVEN
-    )
-
-    @staticmethod
-    def _create_unary_op(operator, wrap=True):
-        """Create binary op method. Assumes existence of self.value."""
-        def unary_op(self):
-            with localcontext(self.CONTEXT) as ctx:
-                pure_value = getattr(self.value, operator)()
-                if not wrap:
-                    return pure_value
-                return JsonFactory.from_python(
-                    getattr(self.value, operator())
-                )
-        return unary_op
-
-    @staticmethod
-    def _create_binary_op(operator, wrap=True, strict_type=True):
-        """Create unary op method. Assumes presence of self.value."""
-        def binary_op(self, other):
-            if isinstance(other, type(self)):
-                other_value = other.value
-            elif not strict_type:
-                other_value = other
-            else:
-                return NotImplemented
-
-            with localcontext(self.CONTEXT) as ctx:
-                pure_value = getattr(self.value, operator)(other_value)
-                if not wrap:
-                    return pure_value
-                return JsonFactory.from_python(pure_value)
-        return binary_op
 
 
 @JsonFactory.register_python_types_deco(

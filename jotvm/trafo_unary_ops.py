@@ -7,7 +7,7 @@ from .utils import (
     ensure_array,
     ensure_string,
 )
-from .json.types import (
+from .json.json_types import (
     JsonContainerTypeHint,
     JsonNumber,
     JsonArray,

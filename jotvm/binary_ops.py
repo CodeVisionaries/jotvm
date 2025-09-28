@@ -6,7 +6,7 @@ from .utils import (
     MissingValue,
 )
 import operator
-from .json.types import (
+from .json.json_types import (
     JsonContainerTypes,
     JsonContainerTypeHint,
     JsonBool,

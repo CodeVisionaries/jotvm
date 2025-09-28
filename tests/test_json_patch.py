@@ -1,6 +1,6 @@
 import pytest
 from jotvm.json_patch import JsonPatch
-from jotvm.json.types import (
+from jotvm.json.json_types import (
     JsonFactory,
     JsonObject,
 )

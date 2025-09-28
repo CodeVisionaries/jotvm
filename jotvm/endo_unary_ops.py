@@ -8,7 +8,7 @@ from .utils import (
     ensure_bool,
     ensure_number,
 )
-from .json.types import (
+from .json.json_types import (
     JsonContainerTypes,
     JsonContainerTypeHint,
     JsonNumber,

@@ -1,5 +1,5 @@
 import pytest
-from jotvm.json.types import JsonNumber
+from jotvm.json.json_types import JsonNumber
 from decimal import Decimal
 
 

@@ -1,6 +1,6 @@
 import pytest
 from jotvm.json_pointer import JsonPointer
-from jotvm.json.types import (
+from jotvm.json.json_types import (
     JsonFactory,
     JsonNumber,
 )

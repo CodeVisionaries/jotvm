@@ -1,7 +1,7 @@
 import pytest
 from jotvm.json_pointer import JsonPointer
 from jotvm.json_patch_ops import PATCH_OP_CLASSES
-from jotvm.json.types import JsonObject
+from jotvm.json.json_types import JsonObject
 
 
 OP_CLASS_DICT = {cl.__name__: cl for cl in PATCH_OP_CLASSES}
