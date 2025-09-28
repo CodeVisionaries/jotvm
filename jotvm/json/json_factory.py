@@ -1,9 +1,27 @@
+from __future__ import annotations
+from abc import ABC, abstractmethod
 from .tokens import (
     TOK_REGEX,
     tokenize,
     TokenStream,
 )
 from .json_value import JsonValue
+
+
+class JsonParsableMixin(ABC):
+    """Abstract mixin for JSON classes supporting parsing."""
+
+    @classmethod
+    @abstractmethod
+    def from_python(cls, **extra_args) -> JsonValue:
+        """Method to convert a Python object into a JsonValue."""
+        pass
+
+    @classmethod
+    @abstractmethod
+    def parse(cls, tokens: TokenStream) -> JsonValue:
+        """Method to parse tokens into a JsonValue."""
+        pass
 
 
 class JsonFactory:
@@ -32,6 +50,13 @@ class JsonFactory:
         cls, py_types, start_toks, require_decimal=False
     ):
         def decorator(json_class):
+            if not issubclass(json_class, JsonParsableMixin):
+                json_class = type(
+                    json_class.__name__,
+                    (json_class, JsonParsableMixin),
+                    dict(json_class.__dict__)
+                )
+
             cls.register_python_types(
                 json_class, py_types, start_toks, require_decimal
             )

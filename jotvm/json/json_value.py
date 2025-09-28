@@ -20,16 +20,6 @@ class JsonValue(ABC):
     def to_python(self) -> object:
         pass
 
-    @classmethod
-    @abstractmethod
-    def from_python(cls, **extra_args) -> JsonValue:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def parse(cls, tokens: TokenStream) -> JsonValue:
-        pass
-
     @abstractmethod
     def __eq__(self, other):
         pass
