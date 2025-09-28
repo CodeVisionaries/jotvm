@@ -1,6 +1,6 @@
 import pytest
+from jotvm.json.json_factory import JsonFactory
 from jotvm.json.json_types import (
-    JsonFactory,
     JsonObject,
     JsonArray,
     JsonNumber,

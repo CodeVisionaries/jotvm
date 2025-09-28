@@ -14,15 +14,11 @@ from typing import (
 from decimal import Decimal
 from .tokens import TokenStream
 from .json_value import JsonValue
-from .json_factory import JsonFactory
 
 
 JsonValueType = TypeVar('JsonValueType', bound='JsonValue')
 
 
-@JsonFactory.register_python_types_deco(
-    py_types=(dict,), start_toks=('LBRACE',), require_decimal=True
-)
 class JsonObject(
     JsonValue, MutableMapping['JsonString', JsonValueType], Generic[JsonValueType]
 ):
@@ -39,6 +35,7 @@ class JsonObject(
 
     @classmethod
     def from_python(cls, py_dict: dict, require_decimal=True) -> JsonObject:
+        from .json_factory import JsonFactory
         return cls({
             JsonString(k): JsonFactory.from_python(v, require_decimal)
             for k, v in py_dict.items()
@@ -63,6 +60,7 @@ class JsonObject(
             _, tok_val = tokens.consume('STRING')
             key = JsonString(JsonString._unquote(tok_val))
             tokens.consume('COLON')
+            from .json_factory import JsonFactory
             json_value = JsonFactory.parse(tokens)
             properties[key] = json_value
 
@@ -112,9 +110,6 @@ class JsonObject(
         return len(self.value)
 
 
-@JsonFactory.register_python_types_deco(
-    py_types=(list,), start_toks=('LBRACKET',), require_decimal=True
-)
 class JsonArray(JsonValue, MutableSequence[JsonValueType], Generic[JsonValueType]):
     def __init__(self, values: Optional[list[JsonValue]]=None):
         values = values if values else []
@@ -127,6 +122,7 @@ class JsonArray(JsonValue, MutableSequence[JsonValueType], Generic[JsonValueType
 
     @classmethod
     def from_python(self, py_list: list, require_decimal=True) -> JsonArray:
+        from .json_factory import JsonFactory
         return JsonArray(
             [JsonFactory.from_python(v, require_decimal) for v in py_list]
         )
@@ -142,6 +138,7 @@ class JsonArray(JsonValue, MutableSequence[JsonValueType], Generic[JsonValueType
             return cls(values)
 
         while True:
+            from .json_factory import JsonFactory
             value = JsonFactory.parse(tokens)
             values.append(value)
             tok_type, tok_val = tokens.consume()
@@ -177,9 +174,6 @@ class JsonArray(JsonValue, MutableSequence[JsonValueType], Generic[JsonValueType
         self.value.insert(index, value)
 
 
-@JsonFactory.register_python_types_deco(
-    py_types=(str,), start_toks=('STRING',)
-)
 class JsonString(JsonValue):
     def __init__(self, string: str):
         if not isinstance(string, str):
@@ -236,9 +230,6 @@ class JsonString(JsonValue):
         return self.value.endswith(suffix)
 
 
-@JsonFactory.register_python_types_deco(
-    py_types=(int, float, Decimal), start_toks=('NUMBER',), require_decimal=True
-)
 class JsonNumber(JsonValue):
 
     def __init__(self, value, require_decimal=True):
@@ -296,7 +287,6 @@ class JsonNumber(JsonValue):
     __pow__      = JsonValue._create_binary_op('__pow__', True, False)
 
 
-@JsonFactory.register_python_types_deco(py_types=(bool,), start_toks=('TRUE', 'FALSE'))
 class JsonBool(JsonValue):
     def __init__(self, value: Union[bool, JsonBool]) -> None:
         if not isinstance(value, (JsonBool, bool)):
@@ -337,7 +327,6 @@ class JsonBool(JsonValue):
     __xor__ = JsonValue._create_binary_op('__xor__', False, False)
 
 
-@JsonFactory.register_python_types_deco(py_types=(type(None),), start_toks=('NULL',))
 class JsonNull(JsonValue):
     def __init__(obj=None) -> None:
         if obj is not None:

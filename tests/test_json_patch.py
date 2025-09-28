@@ -1,9 +1,7 @@
 import pytest
 from jotvm.json_patch import JsonPatch
-from jotvm.json.json_types import (
-    JsonFactory,
-    JsonObject,
-)
+from jotvm.json.json_factory import JsonFactory
+from jotvm.json.json_types import JsonObject
 
 
 @pytest.fixture(scope="function")

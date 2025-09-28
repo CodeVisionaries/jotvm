@@ -1,9 +1,7 @@
 import pytest
 from jotvm.json_pointer import JsonPointer
-from jotvm.json.json_types import (
-    JsonFactory,
-    JsonNumber,
-)
+from jotvm.json.json_factory import JsonFactory
+from jotvm.json.json_types import JsonNumber
 
 
 @pytest.fixture(scope="function")

@@ -1,11 +1,20 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from decimal import Decimal
 from .tokens import (
     TOK_REGEX,
     tokenize,
     TokenStream,
 )
 from .json_value import JsonValue
+from .json_types import (
+    JsonObject,
+    JsonArray,
+    JsonNumber,
+    JsonString,
+    JsonBool,
+    JsonNull,
+)
 
 
 class JsonParsableMixin(ABC):
@@ -92,3 +101,23 @@ class JsonFactory:
     @classmethod
     def from_json(cls, json_string: str):
         return cls.parse(cls._token_stream(json_string))
+
+
+JsonFactory.register_python_types(
+    JsonObject, py_types=(dict,), start_toks=('LBRACE',), require_decimal=True
+)
+JsonFactory.register_python_types(
+    JsonArray, py_types=(list,), start_toks=('LBRACKET',), require_decimal=True
+)
+JsonFactory.register_python_types(
+    JsonString, py_types=(str,), start_toks=('STRING',)
+)
+JsonFactory.register_python_types(
+    JsonNumber, py_types=(int, float, Decimal), start_toks=('NUMBER',), require_decimal=True
+)
+JsonFactory.register_python_types(
+    JsonBool, py_types=(bool,), start_toks=('TRUE', 'FALSE')
+)
+JsonFactory.register_python_types(
+    JsonNull, py_types=(type(None),), start_toks=('NULL',)
+)
