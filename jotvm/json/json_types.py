@@ -19,8 +19,25 @@ from .json_value import JsonValue
 JsonValueType = TypeVar('JsonValueType', bound='JsonValue')
 
 
+class JsonParsableMixin(ABC):
+    """Abstract mixin for JSON classes supporting parsing."""
+
+    @classmethod
+    @abstractmethod
+    def from_python(cls, **extra_args) -> JsonValue:
+        """Method to convert a Python object into a JsonValue."""
+        pass
+
+    @classmethod
+    @abstractmethod
+    def parse(cls, tokens: TokenStream) -> JsonValue:
+        """Method to parse tokens into a JsonValue."""
+        pass
+
+
 class JsonObject(
-    JsonValue, MutableMapping['JsonString', JsonValueType], Generic[JsonValueType]
+    JsonValue, JsonParsableMixin,
+    MutableMapping['JsonString', JsonValueType], Generic[JsonValueType]
 ):
     def __init__(self, items: Optional[dict[JsonString, JsonValue]]=None, require_decimal=True):
         items = items if items else {}
@@ -110,7 +127,10 @@ class JsonObject(
         return len(self.value)
 
 
-class JsonArray(JsonValue, MutableSequence[JsonValueType], Generic[JsonValueType]):
+class JsonArray(
+    JsonValue, JsonParsableMixin,
+    MutableSequence[JsonValueType], Generic[JsonValueType]
+):
     def __init__(self, values: Optional[list[JsonValue]]=None):
         values = values if values else []
         if not all (isinstance(v, JsonValue) for v in values):
@@ -174,7 +194,7 @@ class JsonArray(JsonValue, MutableSequence[JsonValueType], Generic[JsonValueType
         self.value.insert(index, value)
 
 
-class JsonString(JsonValue):
+class JsonString(JsonValue, JsonParsableMixin):
     def __init__(self, string: str):
         if not isinstance(string, str):
             raise TypeError('Expected a string')
@@ -230,7 +250,7 @@ class JsonString(JsonValue):
         return self.value.endswith(suffix)
 
 
-class JsonNumber(JsonValue):
+class JsonNumber(JsonValue, JsonParsableMixin):
 
     def __init__(self, value, require_decimal=True):
         if not isinstance(value, (int, str, Decimal)) and require_decimal:
@@ -287,7 +307,7 @@ class JsonNumber(JsonValue):
     __pow__      = JsonValue._create_binary_op('__pow__', True, False)
 
 
-class JsonBool(JsonValue):
+class JsonBool(JsonValue, JsonParsableMixin):
     def __init__(self, value: Union[bool, JsonBool]) -> None:
         if not isinstance(value, (JsonBool, bool)):
             raise TypeError('Expected value of type `bool` or `JsonBool`')
@@ -327,7 +347,7 @@ class JsonBool(JsonValue):
     __xor__ = JsonValue._create_binary_op('__xor__', False, False)
 
 
-class JsonNull(JsonValue):
+class JsonNull(JsonValue, JsonParsableMixin):
     def __init__(obj=None) -> None:
         if obj is not None:
             raise TypeError('Expected obj to be `None`')

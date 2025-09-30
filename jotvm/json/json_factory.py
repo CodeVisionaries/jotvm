@@ -8,6 +8,7 @@ from .tokens import (
 )
 from .json_value import JsonValue
 from .json_types import (
+    JsonParsableMixin,
     JsonObject,
     JsonArray,
     JsonNumber,
@@ -15,22 +16,6 @@ from .json_types import (
     JsonBool,
     JsonNull,
 )
-
-
-class JsonParsableMixin(ABC):
-    """Abstract mixin for JSON classes supporting parsing."""
-
-    @classmethod
-    @abstractmethod
-    def from_python(cls, **extra_args) -> JsonValue:
-        """Method to convert a Python object into a JsonValue."""
-        pass
-
-    @classmethod
-    @abstractmethod
-    def parse(cls, tokens: TokenStream) -> JsonValue:
-        """Method to parse tokens into a JsonValue."""
-        pass
 
 
 class JsonFactory:
